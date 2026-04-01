@@ -2,34 +2,21 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <!-- 모바일 환경을 위한 뷰포트 설정 (확대 방지 등) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>스마트 음성 메모</title>
-    <!-- Tailwind CSS (스타일링) -->
+    <title>엠베스트 음성 메모</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 폰트: Noto Sans KR -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Noto Sans KR', sans-serif;
-            background-color: #f3f4f6; /* Tailwind gray-100 */
-            /* 모바일에서 당겨서 새로고침 방지 */
+            background-color: #f3f4f6;
             overscroll-behavior-y: none;
         }
         
-        /* 스크롤바 디자인 */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
-        /* 녹음 중 깜빡임 애니메이션 */
         @keyframes pulse-ring {
             0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
             70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
@@ -37,40 +24,25 @@
         }
         .recording-active {
             animation: pulse-ring 2s infinite;
-            background-color: #ef4444 !important; /* Tailwind red-500 */
+            background-color: #ef4444 !important;
             color: white !important;
         }
 
-        /* 말풍선 생성 애니메이션 */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
-        /* 텍스트 영역 부드러운 전환 */
-        #result-container {
-            transition: all 0.3s ease;
-        }
-        
-        /* 임시 텍스트(인식 중인 텍스트) 스타일 */
-        #interim-text {
-            color: #9ca3af; /* Tailwind gray-400 */
-            font-style: italic;
-        }
     </style>
 </head>
-<body class="h-screen flex flex-col text-gray-800 antialiased overflow-hidden">
+<body class="h-[100dvh] flex flex-col text-gray-800 antialiased overflow-hidden">
 
-    <!-- 상단 헤더 및 컨트롤 영역 -->
     <header class="bg-white shadow-sm z-10 p-4 shrink-0 flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <!-- 엠베스트 로고 -->
             <img src="https://img1s.mbest.co.kr/main/new2017/logo.png" alt="엠베스트" class="h-6 md:h-7">
             <span class="text-gray-300">|</span>
             <h1 class="text-lg font-bold tracking-tight text-gray-700">음성 메모</h1>
         </div>
         
-        <!-- 언어 선택 드롭다운 -->
         <div>
             <select id="language-select" class="bg-gray-100 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-[#00A651] focus:border-[#00A651] block p-2 cursor-pointer outline-none">
                 <option value="ko-KR" selected>한국어</option>
@@ -81,84 +53,55 @@
         </div>
     </header>
 
-    <!-- 메인 텍스트 표시 영역 (스크롤 가능) -->
     <main class="flex-grow p-4 md:p-6 overflow-y-auto relative bg-[#f3f4f6]" id="scroll-area">
         <div id="result-container" class="min-h-full flex flex-col justify-end pb-4">
-            <!-- 상태 메시지 (초기 화면) -->
             <div id="placeholder" class="text-gray-400 flex flex-col items-center justify-center h-full absolute inset-0 pointer-events-none mt-[-50px]">
                 <svg class="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                 </svg>
                 <div class="text-center text-base md:text-lg">하단의 마이크 버튼을 누르고 말씀해 주세요.</div>
-                <div class="text-sm mt-2 opacity-70">인식된 말풍선을 터치하여 화자를 변경할 수 있습니다.</div>
+                <div class="text-sm mt-2 opacity-70">인식된 말풍선을 터치하여 화자를 지정할 수 있습니다.</div>
             </div>
             
-            <!-- 확정된 텍스트 블록들이 쌓이는 영역 -->
             <div id="blocks-container" class="flex flex-col gap-4 w-full z-0 mt-10"></div>
             
-            <!-- 현재 인식 중인 실시간 텍스트 -->
             <div id="interim-container" class="hidden self-center mt-4 mb-2 z-0">
                 <span id="interim-text" class="bg-white border border-gray-200 text-gray-400 italic px-4 py-2 rounded-2xl text-sm md:text-base inline-block shadow-sm"></span>
             </div>
         </div>
     </main>
 
-    <!-- 하단 컨트롤 바 -->
     <footer class="bg-white border-t border-gray-200 p-4 pb-6 shrink-0 flex flex-col gap-4">
-        
-        <!-- 상태 알림 텍스트 -->
-        <div id="status-text" class="text-center text-sm text-gray-500 font-medium transition-colors">
-            대기 중...
-        </div>
+        <div id="status-text" class="text-center text-sm text-gray-500 font-medium transition-colors">대기 중...</div>
 
         <div class="grid grid-cols-3 items-center max-w-md mx-auto w-full px-2 gap-2">
-            
-            <!-- 왼쪽: 초기화 버튼 -->
             <div class="flex justify-start">
                 <button id="clear-btn" class="flex flex-col items-center justify-center p-3 text-gray-500 hover:text-gray-800 transition-colors rounded-full hover:bg-gray-100 active:bg-gray-200" title="내용 지우기">
-                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     <span class="text-xs font-semibold whitespace-nowrap">지우기</span>
                 </button>
             </div>
 
-            <!-- 중앙: 메인 마이크 (녹음 시작/중지) 버튼 -->
             <div class="flex justify-center">
                 <button id="mic-btn" class="w-16 h-16 bg-[#00A651] text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-300 transform active:scale-95 hover:bg-[#008A43]">
-                    <svg id="mic-icon" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
-                    </svg>
-                    <!-- 정지 아이콘 (기본은 숨김) -->
-                    <svg id="stop-icon" class="w-8 h-8 hidden" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="6" y="6" width="12" height="12" rx="2"></rect>
-                    </svg>
+                    <svg id="mic-icon" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                    <svg id="stop-icon" class="w-8 h-8 hidden" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>
                 </button>
             </div>
 
-            <!-- 오른쪽: 복사 및 다운로드 버튼 -->
             <div class="flex justify-end gap-1 md:gap-2">
-                <!-- 복사 버튼 -->
                 <button id="copy-btn" class="flex flex-col items-center justify-center p-3 text-gray-500 hover:text-[#00A651] transition-colors rounded-full hover:bg-[#E6F6EC] active:bg-[#CCEED9]" title="클립보드에 복사">
-                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
-                    </svg>
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
                     <span class="text-xs font-semibold whitespace-nowrap">복사</span>
                 </button>
-                
-                <!-- 다운로드 버튼 -->
                 <button id="download-btn" class="flex flex-col items-center justify-center p-3 text-gray-500 hover:text-[#00A651] transition-colors rounded-full hover:bg-[#E6F6EC] active:bg-[#CCEED9]" title="텍스트 파일로 다운로드">
-                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                    </svg>
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     <span class="text-xs font-semibold whitespace-nowrap">회의록 다운</span>
                 </button>
             </div>
-            
         </div>
     </footer>
 
-    <!-- 화자 지정 모달 (새로 추가) -->
     <div id="speaker-modal" class="fixed inset-0 bg-black/50 hidden z-[60] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl transform scale-95 transition-transform duration-300" id="speaker-modal-content">
             <h3 class="text-lg font-bold mb-4 text-gray-800">화자 지정</h3>
@@ -166,9 +109,7 @@
             
             <div class="mb-4">
                 <span class="text-xs text-gray-500 mb-2 block">최근 사용된 이름 (터치하여 선택)</span>
-                <div id="recent-speakers" class="flex flex-wrap gap-2 min-h-[30px]">
-                    <!-- 동적 생성 칩 -->
-                </div>
+                <div id="recent-speakers" class="flex flex-wrap gap-2 min-h-[30px]"></div>
             </div>
 
             <div class="flex justify-end gap-2">
@@ -180,15 +121,12 @@
         </div>
     </div>
 
-    <!-- 복사 완료 토스트 알림 -->
     <div id="toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full text-sm opacity-0 transition-opacity duration-300 pointer-events-none z-50 shadow-lg">
         복사되었습니다!
     </div>
 
-    <!-- 스크립트 영역 -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // DOM 요소 선택
             const micBtn = document.getElementById('mic-btn');
             const micIcon = document.getElementById('mic-icon');
             const stopIcon = document.getElementById('stop-icon');
@@ -204,7 +142,6 @@
             const scrollArea = document.getElementById('scroll-area');
             const toast = document.getElementById('toast');
 
-            // 모달 관련 DOM
             const speakerModal = document.getElementById('speaker-modal');
             const speakerModalContent = document.getElementById('speaker-modal-content');
             const speakerInput = document.getElementById('speaker-input');
@@ -214,39 +151,35 @@
             const btnApply = document.getElementById('btn-apply');
 
             let isRecording = false;
-            let blocks = []; // 화자 구분을 위한 블록 배열
+            let blocks = [];
             let currentBlockId = 0;
-            let knownSpeakers = new Set(); // 기본 추천 이름 풀 비우기
-            let editingBlockId = null; // 현재 편집 중인 블록 ID
+            // ✅ 수정된 부분: 기본 추천 이름 비우기
+            let knownSpeakers = new Set(); 
+            let editingBlockId = null;
             let recognition = null;
 
-            // 브라우저 지원 여부 확인
             window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
             if (!window.SpeechRecognition) {
-                statusText.innerHTML = "<span class='text-red-500'>현재 브라우저에서는 음성 인식을 지원하지 않습니다.<br>Chrome 브라우저를 이용해 주세요.</span>";
+                statusText.innerHTML = "<span class='text-red-500'>현재 브라우저에서는 음성 인식을 지원하지 않습니다.</span>";
                 micBtn.disabled = true;
                 micBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 return;
             }
 
-            // 음성 인식 객체 초기화
             recognition = new SpeechRecognition();
-            recognition.continuous = true; // 계속해서 듣기
-            recognition.interimResults = true; // 실시간(중간) 결과 표시
+            recognition.continuous = true;
+            recognition.interimResults = true;
             
-            // 언어 설정 초기화 및 변경 이벤트 처리
             recognition.lang = languageSelect.value;
             languageSelect.addEventListener('change', (e) => {
                 recognition.lang = e.target.value;
                 if(isRecording) {
-                    // 녹음 중 언어가 바뀌면 재시작
                     recognition.stop();
                     setTimeout(() => recognition.start(), 300);
                 }
             });
 
-            // 음성 인식 이벤트: 시작됨
             recognition.onstart = () => {
                 isRecording = true;
                 updateUIState();
@@ -254,29 +187,19 @@
                 if(placeholder) placeholder.style.display = 'none';
             };
 
-            // 음성 인식 이벤트: 결과 수신
             recognition.onresult = (event) => {
                 let interimTranscript = '';
-                
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     if (event.results[i].isFinal) {
-                        // 결과가 확정되었을 때 새로운 블록 추가
                         const text = event.results[i][0].transcript.trim();
                         if(text) {
-                            blocks.push({
-                                id: currentBlockId++,
-                                text: text,
-                                speaker: 'none' // 기본값: 미지정
-                            });
+                            blocks.push({ id: currentBlockId++, text: text, speaker: 'none' });
                             renderBlocks();
                         }
                     } else {
-                        // 결과가 아직 인식 중일 때 (임시)
                         interimTranscript += event.results[i][0].transcript;
                     }
                 }
-
-                // 임시 텍스트 UI 업데이트
                 if (interimTranscript.trim() !== '') {
                     interimContainer.classList.remove('hidden');
                     interimTextSpan.innerText = interimTranscript;
@@ -284,25 +207,21 @@
                     interimContainer.classList.add('hidden');
                     interimTextSpan.innerText = '';
                 }
-
                 scrollToBottom();
             };
 
-            // 음성 인식 이벤트: 에러 발생
             recognition.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
                 if(event.error === 'not-allowed') {
-                    statusText.innerHTML = "<span class='text-red-500'>마이크 권한이 거부되었습니다. 권한을 허용해 주세요.</span>";
+                    statusText.innerHTML = "<span class='text-red-500'>마이크 권한이 거부되었습니다.</span>";
                 } else if(event.error === 'no-speech') {
                     statusText.innerText = "음성이 감지되지 않았습니다.";
                 } else {
-                    statusText.innerText = "오류가 발생했습니다: " + event.error;
+                    statusText.innerText = "오류 발생: " + event.error;
                 }
                 isRecording = false;
                 updateUIState();
             };
 
-            // 음성 인식 이벤트: 종료됨
             recognition.onend = () => {
                 isRecording = false;
                 interimContainer.classList.add('hidden');
@@ -317,20 +236,11 @@
                 }
             };
 
-            // 마이크 버튼 클릭 이벤트
             micBtn.addEventListener('click', () => {
-                if (isRecording) {
-                    recognition.stop();
-                } else {
-                    try {
-                        recognition.start();
-                    } catch(e) {
-                        console.error(e);
-                    }
-                }
+                if (isRecording) recognition.stop();
+                else recognition.start();
             });
 
-            // 지우기 버튼 클릭 이벤트
             clearBtn.addEventListener('click', () => {
                 if(confirm("모든 내용을 지우시겠습니까?")) {
                     blocks = [];
@@ -344,93 +254,51 @@
                 }
             });
 
-            // 복사 버튼 클릭 이벤트
             copyBtn.addEventListener('click', () => {
                 const textToCopy = getFormattedText();
-                if(!textToCopy.trim()) {
-                    showToast("복사할 내용이 없습니다.");
-                    return;
-                }
-
+                if(!textToCopy.trim()) { showToast("내용이 없습니다."); return; }
                 if (navigator.clipboard && window.isSecureContext) {
-                    navigator.clipboard.writeText(textToCopy).then(() => {
-                        showToast("복사되었습니다!");
-                    });
+                    navigator.clipboard.writeText(textToCopy).then(() => showToast("복사되었습니다!"));
                 } else {
                     let textArea = document.createElement("textarea");
                     textArea.value = textToCopy;
-                    textArea.style.position = "fixed";
-                    textArea.style.left = "-999999px";
-                    textArea.style.top = "-999999px";
                     document.body.appendChild(textArea);
-                    textArea.focus();
                     textArea.select();
-                    try {
-                        document.execCommand('copy');
-                        showToast("복사되었습니다!");
-                    } catch (err) {
-                        showToast("복사에 실패했습니다.");
-                    }
+                    document.execCommand('copy');
                     textArea.remove();
+                    showToast("복사되었습니다!");
                 }
             });
 
-            // 다운로드 버튼 클릭 이벤트
             downloadBtn.addEventListener('click', () => {
                 const textToDownload = getFormattedText();
-                if(!textToDownload.trim()) {
-                    showToast("다운로드할 내용이 없습니다.");
-                    return;
-                }
-
+                if(!textToDownload.trim()) { showToast("내용이 없습니다."); return; }
                 const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                const filename = `회의록_${year}${month}${day}_${hours}${minutes}.txt`;
-
+                const filename = `회의록_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.txt`;
                 const blob = new Blob([textToDownload], { type: 'text/plain;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                
-                a.style.display = 'none';
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
+                a.href = url; a.download = filename;
                 a.click();
-                
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }, 100);
-
-                showToast("다운로드가 시작되었습니다.");
+                URL.revokeObjectURL(url);
+                showToast("다운로드 시작됨");
             });
 
-            // 블록 렌더링 함수 (채팅 UI)
             function renderBlocks() {
                 blocksContainer.innerHTML = '';
-                
                 blocks.forEach((block, index) => {
                     const blockDiv = document.createElement('div');
                     blockDiv.className = 'flex flex-col animate-[fadeIn_0.3s_ease-out] cursor-pointer group w-full';
-                    
-                    // 터치 이벤트: 화자 지정 모달 열기
-                    blockDiv.onclick = () => {
-                        openSpeakerModal(block.id);
-                    };
+                    blockDiv.onclick = () => openSpeakerModal(block.id);
 
                     const bubble = document.createElement('div');
                     const label = document.createElement('span');
                     label.className = 'text-xs mb-1 mx-2 font-bold transition-colors';
 
-                    // 화자별 스타일링 (다수 화자 지원: 그룹 채팅 형태)
                     if (block.speaker !== 'none') {
                         blockDiv.classList.add('items-start'); 
                         label.innerText = block.speaker;
-                        label.classList.add(getSpeakerColorClass(block.speaker)); // 이름에 따라 다른 색상 부여
+                        label.classList.add(getSpeakerColorClass(block.speaker));
                         bubble.className = 'bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[85%] md:max-w-[70%] shadow-sm text-base md:text-lg leading-relaxed relative';
                     } else {
                         blockDiv.classList.add('items-center');
@@ -439,28 +307,14 @@
                         bubble.className = 'bg-gray-100 text-gray-600 rounded-2xl px-4 py-2.5 max-w-[90%] md:max-w-[75%] shadow-sm text-center text-base md:text-lg leading-relaxed border border-dashed border-gray-300 relative';
                     }
 
-                    // 블록 병합 (Merge) 버튼 추가 로직
                     if (index > 0) {
                         const mergeBtn = document.createElement('button');
-                        mergeBtn.innerHTML = `
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
-                            </svg>
-                        `;
-                        // 버튼 위치를 말풍선 모서리에 맞춤
-                        if (block.speaker !== 'none') {
-                            mergeBtn.className = 'absolute -top-3 -right-3 md:-left-3 md:right-auto bg-white border border-gray-200 text-gray-400 hover:text-[#00A651] rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10';
-                        } else {
-                            mergeBtn.className = 'absolute -top-3 -right-3 bg-white border border-gray-200 text-gray-400 hover:text-[#00A651] rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10';
-                        }
+                        mergeBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>`;
+                        mergeBtn.className = `absolute -top-3 ${block.speaker !== 'none' ? '-right-3 md:-left-3 md:right-auto' : '-right-3'} bg-white border border-gray-200 text-gray-400 hover:text-[#00A651] rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10`;
                         mergeBtn.title = '이전 말풍선과 합치기';
-                        
-                        // 병합 버튼 클릭 시 버블 자체의 onclick 이벤트 방지
                         mergeBtn.onclick = (e) => {
                             e.stopPropagation(); 
-                            // 이전 블록에 현재 텍스트 추가
                             blocks[index - 1].text += ' ' + block.text;
-                            // 현재 블록 삭제
                             blocks.splice(index, 1);
                             renderBlocks();
                         };
@@ -474,44 +328,29 @@
                 });
             }
 
-            // 다운로드/복사를 위한 텍스트 포맷팅
             function getFormattedText() {
                 let result = '';
                 blocks.forEach(block => {
-                    if (block.speaker !== 'none') {
-                        result += `[${block.speaker}]: ${block.text}\n\n`;
-                    } else {
-                        result += `[미지정]: ${block.text}\n\n`;
-                    }
+                    result += `[${block.speaker !== 'none' ? block.speaker : '미지정'}]: ${block.text}\n\n`;
                 });
-                
-                // 아직 확정되지 않은 텍스트가 있다면 하단에 추가
                 const interim = interimTextSpan.innerText.trim();
-                if (interim) {
-                    result += `[진행 중...]: ${interim}\n`;
-                }
+                if (interim) result += `[진행 중...]: ${interim}\n`;
                 return result.trim();
             }
 
-            // 모달 열기 함수
             function openSpeakerModal(blockId) {
                 editingBlockId = blockId;
                 const block = blocks.find(b => b.id === blockId);
-                
                 speakerInput.value = block.speaker !== 'none' ? block.speaker : '';
                 renderRecentSpeakers();
-                
                 speakerModal.classList.remove('hidden');
-                // 부드러운 애니메이션을 위한 지연
                 setTimeout(() => {
                     speakerModal.classList.remove('opacity-0');
                     speakerModalContent.classList.remove('scale-95');
                 }, 10);
-                
                 speakerInput.focus();
             }
 
-            // 모달 닫기 함수
             function closeSpeakerModal() {
                 speakerModal.classList.add('opacity-0');
                 speakerModalContent.classList.add('scale-95');
@@ -521,7 +360,6 @@
                 }, 300);
             }
 
-            // 최근 화자 목록 렌더링
             function renderRecentSpeakers() {
                 recentSpeakersDiv.innerHTML = '';
                 knownSpeakers.forEach(name => {
@@ -529,15 +367,11 @@
                     const chip = document.createElement('button');
                     chip.className = 'px-3 py-1 bg-gray-100 border border-gray-200 rounded-full text-sm text-gray-700 hover:bg-[#E6F6EC] hover:text-[#00A651] hover:border-[#00A651] transition-colors';
                     chip.innerText = name;
-                    chip.onclick = () => {
-                        speakerInput.value = name;
-                        applySpeaker(name);
-                    };
+                    chip.onclick = () => { speakerInput.value = name; applySpeaker(name); };
                     recentSpeakersDiv.appendChild(chip);
                 });
             }
 
-            // 화자 적용 함수
             function applySpeaker(name) {
                 const trimmedName = name.trim();
                 if (editingBlockId !== null) {
@@ -546,50 +380,26 @@
                         if (trimmedName && trimmedName !== 'none') {
                             block.speaker = trimmedName;
                             knownSpeakers.add(trimmedName);
-                        } else {
-                            block.speaker = 'none';
-                        }
+                        } else block.speaker = 'none';
                     }
                     renderBlocks();
                 }
                 closeSpeakerModal();
             }
 
-            // 화자 이름 기반 색상 클래스 자동 생성 (글자에 따른 고정 색상)
             function getSpeakerColorClass(name) {
                 const colors = ['text-[#00A651]', 'text-blue-600', 'text-orange-500', 'text-purple-600', 'text-pink-600', 'text-teal-600', 'text-indigo-600', 'text-red-500'];
                 let hash = 0;
-                for (let i = 0; i < name.length; i++) {
-                    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-                }
+                for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
                 return colors[Math.abs(hash) % colors.length];
             }
 
-            // 모달 내 버튼 및 키보드 이벤트 리스너 설정
             btnCancel.addEventListener('click', closeSpeakerModal);
-            
-            btnNone.addEventListener('click', () => {
-                applySpeaker('none');
-            });
+            btnNone.addEventListener('click', () => applySpeaker('none'));
+            btnApply.addEventListener('click', () => applySpeaker(speakerInput.value));
+            speakerInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') applySpeaker(speakerInput.value); });
+            speakerModal.addEventListener('click', (e) => { if (e.target === speakerModal) closeSpeakerModal(); });
 
-            btnApply.addEventListener('click', () => {
-                applySpeaker(speakerInput.value);
-            });
-
-            speakerInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    applySpeaker(speakerInput.value);
-                }
-            });
-
-            // 모달 배경(검은 영역) 클릭 시 닫기
-            speakerModal.addEventListener('click', (e) => {
-                if (e.target === speakerModal) {
-                    closeSpeakerModal();
-                }
-            });
-
-            // UI 상태 업데이트 함수
             function updateUIState() {
                 if (isRecording) {
                     micBtn.classList.add('recording-active');
@@ -602,21 +412,14 @@
                 }
             }
 
-            // 스크롤 맨 아래로 이동 함수
             function scrollToBottom() {
-                scrollArea.scrollTo({
-                    top: scrollArea.scrollHeight,
-                    behavior: 'smooth'
-                });
+                scrollArea.scrollTo({ top: scrollArea.scrollHeight, behavior: 'smooth' });
             }
 
-            // 토스트 알림 표시 함수
             function showToast(message) {
                 toast.innerText = message;
                 toast.classList.remove('opacity-0');
-                setTimeout(() => {
-                    toast.classList.add('opacity-0');
-                }, 2000);
+                setTimeout(() => toast.classList.add('opacity-0'), 2000);
             }
         });
     </script>
